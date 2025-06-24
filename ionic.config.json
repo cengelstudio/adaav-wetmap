@@ -1,0 +1,8 @@
+{
+  "name": "adaav-wetmap",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular",
+  "id": "651e81a3"
+}
