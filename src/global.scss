@@ -25,13 +25,61 @@
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
+/* Leaflet CSS */
+@import "~leaflet/dist/leaflet.css";
 
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import "@ionic/angular/css/palettes/dark.system.css";
+/* Custom Global Styles */
+.offline-chip {
+  position: sticky;
+  top: 10px;
+  z-index: 1000;
+  margin-bottom: 1rem;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ion-color-light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ion-color-medium);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ion-color-dark);
+}
+
+/* Loading and transition styles */
+.page-transition {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Form styles */
+.form-section {
+  margin: 1rem 0;
+}
+
+.form-section ion-item {
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  --background: var(--ion-item-background, var(--ion-background-color, #fff));
+}
+
+/* Button styles */
+ion-button {
+  --border-radius: 8px;
+  margin: 0.5rem 0;
+}
+
+/* Card styles */
+ion-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Light theme only - dark mode disabled */

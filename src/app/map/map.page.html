@@ -1,0 +1,27 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Harita</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="addNewLocation()">
+        <ion-icon name="add" size="large"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Harita</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <!-- Offline Indicator -->
+  <ion-chip *ngIf="!isOnline" color="warning" class="offline-chip">
+    <ion-icon name="cloud-offline"></ion-icon>
+    <ion-label>Çevrimdışı</ion-label>
+  </ion-chip>
+
+  <!-- Map Container -->
+  <div id="mapId" class="map-container"></div>
+</ion-content>

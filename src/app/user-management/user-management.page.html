@@ -1,0 +1,71 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Kullanıcı Yönetimi</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" *ngIf="isAdmin">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Kullanıcı Yönetimi</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div class="ion-padding">
+    <!-- Arama ve Ekleme -->
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="filterUsers()"
+      placeholder="Kullanıcı ara..."
+      debounce="300">
+    </ion-searchbar>
+
+    <ion-button
+      expand="full"
+      color="primary"
+      (click)="createUser()"
+      class="add-button">
+      <ion-icon name="person-add" slot="start"></ion-icon>
+      Yeni Kullanıcı Ekle
+    </ion-button>
+
+    <!-- Kullanıcı Listesi -->
+    <ion-list>
+      <ion-item-sliding *ngFor="let user of filteredUsers">
+        <ion-item>
+          <ion-avatar slot="start">
+            <ion-icon name="person-circle" size="large"></ion-icon>
+          </ion-avatar>
+          <ion-label>
+            <h2>{{ user.name }}</h2>
+            <p>&#64;{{ user.username }}</p>
+            <p>{{ user.role }}</p>
+            <ion-badge *ngIf="user.isAdmin" color="warning">Admin</ion-badge>
+          </ion-label>
+        </ion-item>
+
+        <ion-item-options side="end">
+          <ion-item-option color="primary" (click)="editUser(user)">
+            <ion-icon name="create" slot="icon-only"></ion-icon>
+          </ion-item-option>
+          <ion-item-option color="danger" (click)="deleteUser(user)">
+            <ion-icon name="trash" slot="icon-only"></ion-icon>
+          </ion-item-option>
+        </ion-item-options>
+      </ion-item-sliding>
+    </ion-list>
+
+    <div *ngIf="filteredUsers.length === 0" class="empty-state">
+      <ion-icon name="people" size="large" color="medium"></ion-icon>
+      <p>Kullanıcı bulunamadı</p>
+    </div>
+  </div>
+</ion-content>
+
+<ion-content *ngIf="!isAdmin" class="ion-padding">
+  <div class="access-denied">
+    <ion-icon name="lock-closed" size="large" color="danger"></ion-icon>
+    <h2>Erişim Reddedildi</h2>
+    <p>Bu sayfaya erişim izniniz bulunmamaktadır.</p>
+  </div>
+</ion-content>

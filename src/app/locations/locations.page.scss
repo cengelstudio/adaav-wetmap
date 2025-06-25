@@ -1,0 +1,69 @@
+.offline-chip {
+  margin-bottom: 1rem;
+}
+
+.filters-container {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  align-items: center;
+
+  ion-select {
+    flex: 1;
+  }
+
+  ion-button {
+    --color: var(--ion-color-medium);
+  }
+}
+
+.results-count {
+  display: block;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.location-details {
+  margin: 0.5rem 0;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.coordinates {
+  font-size: 0.8rem;
+  color: var(--ion-color-medium);
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--ion-color-medium);
+
+  ion-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+  }
+
+  h3 {
+    color: var(--ion-color-dark);
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    margin-bottom: 1rem;
+    line-height: 1.4;
+  }
+}
+
+ion-item-sliding {
+  margin-bottom: 0.5rem;
+}
+
+ion-chip {
+  margin: 0.2rem 0.2rem 0.2rem 0;
+}

@@ -1,0 +1,55 @@
+.add-button {
+  margin: 1rem 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: var(--ion-color-medium);
+
+  ion-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    font-size: 1.1rem;
+  }
+}
+
+.access-denied {
+  text-align: center;
+  padding: 2rem;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  ion-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    color: var(--ion-color-danger);
+    margin-bottom: 1rem;
+  }
+
+  p {
+    color: var(--ion-color-medium);
+    font-size: 1.1rem;
+  }
+}
+
+ion-avatar {
+  --size: 48px;
+}
+
+ion-item-sliding {
+  margin-bottom: 0.5rem;
+}
+
+ion-badge {
+  margin-left: 0.5rem;
+}

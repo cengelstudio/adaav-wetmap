@@ -1,0 +1,119 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Konumlar</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Konumlar</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div class="ion-padding">
+    <!-- Offline Indicator -->
+    <ion-chip *ngIf="!isOnline" color="warning" class="offline-chip">
+      <ion-icon name="cloud-offline"></ion-icon>
+      <ion-label>Çevrimdışı</ion-label>
+    </ion-chip>
+
+    <!-- Search and Filters -->
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="onSearchChange()"
+      placeholder="Konum ara..."
+      debounce="300">
+    </ion-searchbar>
+
+    <div class="filters-container">
+      <ion-select
+        [(ngModel)]="selectedType"
+        (ionChange)="onTypeChange()"
+        placeholder="Tip Seç"
+        interface="popover">
+        <ion-select-option value="">Tümü</ion-select-option>
+        <ion-select-option *ngFor="let type of getUniqueTypes()" [value]="type">
+          {{ type }}
+        </ion-select-option>
+      </ion-select>
+
+      <ion-select
+        [(ngModel)]="selectedCity"
+        (ionChange)="onCityChange()"
+        placeholder="Şehir Seç"
+        interface="popover">
+        <ion-select-option value="">Tümü</ion-select-option>
+        <ion-select-option *ngFor="let city of getUniqueCities()" [value]="city">
+          {{ city }}
+        </ion-select-option>
+      </ion-select>
+
+      <ion-button
+        fill="clear"
+        size="small"
+        (click)="clearFilters()"
+        *ngIf="searchTerm || selectedType || selectedCity">
+        <ion-icon name="close" slot="icon-only"></ion-icon>
+      </ion-button>
+    </div>
+
+    <!-- Results Count -->
+    <ion-text color="medium" class="results-count">
+      {{ filteredLocations.length }} sonuç bulundu
+    </ion-text>
+
+    <!-- Locations List -->
+    <ion-list>
+      <ion-item-sliding *ngFor="let location of filteredLocations">
+        <ion-item>
+          <ion-icon
+            [name]="getTypeIcon(location.type)"
+            [color]="getTypeColor(location.type)"
+            slot="start">
+          </ion-icon>
+          <ion-label>
+            <h2>{{ location.title }}</h2>
+            <p>{{ location.description }}</p>
+            <div class="location-details">
+              <ion-chip size="small" [color]="getTypeColor(location.type)">
+                <ion-icon [name]="getTypeIcon(location.type)"></ion-icon>
+                <ion-label>{{ location.type }}</ion-label>
+              </ion-chip>
+              <ion-chip size="small" color="medium">
+                <ion-icon name="location"></ion-icon>
+                <ion-label>{{ location.city }}</ion-label>
+              </ion-chip>
+            </div>
+            <p class="coordinates">
+              <ion-icon name="navigate" color="medium"></ion-icon>
+              {{ location.latitude.toFixed(6) }}, {{ location.longitude.toFixed(6) }}
+            </p>
+          </ion-label>
+        </ion-item>
+
+        <ion-item-options side="end">
+          <ion-item-option color="primary" (click)="editLocation(location)">
+            <ion-icon name="create" slot="icon-only"></ion-icon>
+          </ion-item-option>
+          <ion-item-option color="danger" (click)="deleteLocation(location)">
+            <ion-icon name="trash" slot="icon-only"></ion-icon>
+          </ion-item-option>
+        </ion-item-options>
+      </ion-item-sliding>
+    </ion-list>
+
+    <!-- Empty State -->
+    <div *ngIf="filteredLocations.length === 0" class="empty-state">
+      <ion-icon name="location" size="large" color="medium"></ion-icon>
+      <h3>Konum bulunamadı</h3>
+      <p>Arama kriterlerinizi değiştirmeyi deneyin</p>
+      <ion-button
+        fill="clear"
+        (click)="clearFilters()"
+        *ngIf="searchTerm || selectedType || selectedCity">
+        Filtreleri Temizle
+      </ion-button>
+    </div>
+  </div>
+</ion-content>

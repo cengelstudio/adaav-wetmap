@@ -1,0 +1,175 @@
+.login-content {
+  --background: #f5f5f5;
+}
+
+.login-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.login-card {
+  background: white;
+  border-radius: 16px;
+  padding: 40px 30px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 30px;
+}
+
+.logo-section {
+  text-align: center;
+  margin-bottom: 40px;
+
+  .app-icon {
+    background: #007bff;
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px auto;
+    box-shadow: 0 4px 16px rgba(0, 123, 255, 0.3);
+
+    .tree-icon {
+      font-size: 40px;
+      color: white;
+    }
+  }
+
+  .app-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0 0 8px 0;
+    line-height: 1.2;
+  }
+
+  .app-subtitle {
+    font-size: 16px;
+    color: #666;
+    margin: 0;
+    font-weight: 400;
+  }
+}
+
+.form-section {
+  .input-group {
+    margin-bottom: 20px;
+
+    .custom-input {
+      --background: #f8f9fa;
+      --border-radius: 12px;
+      --padding-start: 16px;
+      --padding-end: 16px;
+      --min-height: 56px;
+      border: 1px solid #e9ecef;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        --background: #f1f3f4;
+        border-color: #007bff;
+      }
+
+      &.item-has-focus {
+        --background: white;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+      }
+
+      .input-icon {
+        color: #6c757d;
+        font-size: 20px;
+        margin-right: 12px;
+      }
+
+      ion-input {
+        --color: #1a1a1a;
+        --placeholder-color: #9ca3af;
+        font-size: 16px;
+        font-weight: 400;
+      }
+
+      .password-toggle {
+        --color: #6c757d;
+        --padding-start: 8px;
+        --padding-end: 8px;
+        margin: 0;
+
+        .password-icon {
+          font-size: 20px;
+        }
+      }
+    }
+  }
+
+  .login-button {
+    --background: #007bff;
+    --background-hover: #0056b3;
+    --background-activated: #0056b3;
+    --border-radius: 12px;
+    --box-shadow: 0 4px 16px rgba(0, 123, 255, 0.3);
+    --color: white;
+    height: 56px;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 10px;
+    text-transform: none;
+    letter-spacing: 0;
+
+    &:hover {
+      --box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    &.button-disabled {
+      --background: #e9ecef;
+      --color: #6c757d;
+      --box-shadow: none;
+    }
+  }
+}
+
+.copyright {
+  text-align: center;
+
+  p {
+    color: #9ca3af;
+    font-size: 14px;
+    margin: 0;
+    font-weight: 400;
+  }
+}
+
+// Responsive design
+@media (max-width: 480px) {
+  .login-card {
+    padding: 30px 24px;
+    margin: 10px;
+  }
+
+  .logo-section {
+    .app-icon {
+      width: 70px;
+      height: 70px;
+
+      .tree-icon {
+        font-size: 35px;
+      }
+    }
+
+    .app-title {
+      font-size: 22px;
+    }
+
+    .app-subtitle {
+      font-size: 15px;
+    }
+  }
+}
