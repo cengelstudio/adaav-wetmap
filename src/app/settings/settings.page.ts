@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { AlertController, LoadingController } from '@ionic/angular';
+import { AlertController, LoadingController, ActionSheetController } from '@ionic/angular';
 import { AuthService, User } from '../services/auth.service';
 import { OfflineService } from '../services/offline.service';
+import { MapCacheService, MapCacheMetadata } from '../services/map-cache.service';
 
 @Component({
   selector: 'app-settings',
@@ -15,13 +16,18 @@ export class SettingsPage implements OnInit {
   isAdmin = false;
   isOnline = true;
   pendingActionsCount = 0;
+  cachedMaps: MapCacheMetadata[] = [];
+  cachedMapsCount = 0;
+  totalCacheSize = 0;
 
   constructor(
     private authService: AuthService,
     private offlineService: OfflineService,
+    private mapCacheService: MapCacheService,
     private router: Router,
     private alertController: AlertController,
-    private loadingController: LoadingController
+    private loadingController: LoadingController,
+    private actionSheetController: ActionSheetController
   ) {}
 
   ngOnInit() {
@@ -36,6 +42,13 @@ export class SettingsPage implements OnInit {
 
     this.offlineService.pendingActions$.subscribe(actions => {
       this.pendingActionsCount = actions.length;
+    });
+
+    // Map cache durumunu takip et
+    this.mapCacheService.cachedMaps$.subscribe(maps => {
+      this.cachedMaps = maps;
+      this.cachedMapsCount = maps.length;
+      this.totalCacheSize = maps.reduce((total, map) => total + map.sizeInMB, 0);
     });
   }
 
@@ -203,6 +216,128 @@ export class SettingsPage implements OnInit {
         <p>Uygulama offline çalışabilir ve internet bağlantısı geri geldiğinde verilerinizi otomatik olarak senkronize eder.</p>
       `,
       buttons: ['Tamam']
+    });
+
+    await alert.present();
+  }
+
+  async showCachedMaps() {
+    if (this.cachedMaps.length === 0) {
+      this.showAlert('Bilgi', 'Henüz önbelleğe alınmış harita bulunmuyor.');
+      return;
+    }
+
+    const buttons = this.cachedMaps.map(map => ({
+      text: `${map.name} (${map.sizeInMB.toFixed(1)} MB)`,
+      handler: () => {
+        this.showMapDetails(map);
+      }
+    }));
+
+    buttons.push({
+      text: 'İptal',
+      handler: () => {}
+    });
+
+    const actionSheet = await this.actionSheetController.create({
+      header: 'Önbelleğe Alınmış Haritalar',
+      buttons: buttons as any,
+      cssClass: 'ios-action-sheet'
+    });
+
+    await actionSheet.present();
+  }
+
+  async showMapDetails(map: MapCacheMetadata) {
+    const alert = await this.alertController.create({
+      header: map.name,
+      message: `
+        <p><strong>Boyut:</strong> ${map.sizeInMB.toFixed(1)} MB</p>
+        <p><strong>Tile Sayısı:</strong> ${map.tileCount}</p>
+        <p><strong>Zoom Seviyesi:</strong> ${map.minZoom} - ${map.maxZoom}</p>
+        <p><strong>İndirilme Tarihi:</strong> ${new Date(map.downloadDate).toLocaleDateString('tr-TR')}</p>
+      `,
+      buttons: [
+        {
+          text: 'Sil',
+          role: 'destructive',
+          handler: () => {
+            this.deleteMap(map);
+          }
+        },
+        {
+          text: 'Kapat',
+          role: 'cancel'
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  async deleteMap(map: MapCacheMetadata) {
+    const alert = await this.alertController.create({
+      header: 'Haritayı Sil',
+      message: `"${map.name}" haritası silinecek. Bu işlem geri alınamaz.`,
+      buttons: [
+        {
+          text: 'İptal',
+          role: 'cancel'
+        },
+        {
+          text: 'Sil',
+          role: 'destructive',
+          handler: async () => {
+            const loading = await this.loadingController.create({
+              message: 'Harita siliniyor...'
+            });
+            await loading.present();
+
+            try {
+              await this.mapCacheService.deleteCachedMap(map.name);
+              await loading.dismiss();
+              this.showAlert('Başarılı', 'Harita silindi!');
+            } catch (error) {
+              await loading.dismiss();
+              this.showAlert('Hata', 'Harita silinirken hata oluştu!');
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  async clearMapCache() {
+    const alert = await this.alertController.create({
+      header: 'Harita Cache Temizle',
+      message: 'Tüm önbelleğe alınmış haritalar silinecek. Bu işlem geri alınamaz.',
+      buttons: [
+        {
+          text: 'İptal',
+          role: 'cancel'
+        },
+        {
+          text: 'Temizle',
+          role: 'destructive',
+          handler: async () => {
+            const loading = await this.loadingController.create({
+              message: 'Harita cache temizleniyor...'
+            });
+            await loading.present();
+
+            try {
+              await this.mapCacheService.clearAllCache();
+              await loading.dismiss();
+              this.showAlert('Başarılı', 'Harita cache temizlendi!');
+            } catch (error) {
+              await loading.dismiss();
+              this.showAlert('Hata', 'Cache temizlenirken hata oluştu!');
+            }
+          }
+        }
+      ]
     });
 
     await alert.present();

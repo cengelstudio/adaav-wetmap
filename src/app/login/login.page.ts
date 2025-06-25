@@ -13,6 +13,8 @@ export class LoginPage implements OnInit {
   username: string = '';
   password: string = '';
   showPassword: boolean = false;
+  isOnline: boolean = true;
+  saveCredentials: boolean = true; // Offline destek için credentials kaydet
 
   constructor(
     private authService: AuthService,
@@ -22,9 +24,27 @@ export class LoginPage implements OnInit {
   ) {}
 
   ngOnInit() {
+    // Network durumunu takip et
+    this.authService.isOnline$.subscribe(isOnline => {
+      this.isOnline = isOnline;
+    });
+
+    // Auth init'i bekle, sonra auto-login kontrol et
+    this.checkAutoLogin();
+  }
+
+  async checkAutoLogin() {
+    // Auth servisinin initialize olmasını bekle
+    let attempts = 0;
+    while (!this.authService.isAuthInitialized() && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+
     // Eğer zaten giriş yapmışsa ana sayfaya yönlendir
     if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/tabs/map']);
+      console.log('Auto-login successful, redirecting to main page');
+      this.router.navigate(['/tabs/map'], { replaceUrl: true });
     }
   }
 
@@ -35,13 +55,25 @@ export class LoginPage implements OnInit {
     }
 
     const loading = await this.loadingController.create({
-      message: 'Giriş yapılıyor...'
+      message: this.isOnline ? 'Oturumunuz açılıyor...' : 'Çevrimdışı oturum açılıyor...',
+      spinner: 'circular',
+      duration: 10000
     });
     await loading.present();
 
     this.authService.login(this.username, this.password).subscribe({
       next: async (response) => {
         await loading.dismiss();
+
+        // Offline destek için credentials kaydet
+        if (this.saveCredentials) {
+          await this.authService.setAuth(
+            response.token,
+            response.user,
+            { username: this.username, password: this.password }
+          );
+        }
+
         // Authentication state'in güncellenmesini bekle
         setTimeout(() => {
           this.router.navigate(['/tabs/map'], { replaceUrl: true });
@@ -49,7 +81,10 @@ export class LoginPage implements OnInit {
       },
       error: async (error) => {
         await loading.dismiss();
-        this.showAlert('Giriş Hatası', 'Kullanıcı adı veya şifre hatalı!');
+        const errorMessage = this.isOnline ?
+          'Kullanıcı adı veya şifre hatalı!' :
+          'Çevrimdışı giriş başarısız! Daha önce bu bilgilerle giriş yapmış olmanız gerekiyor.';
+        this.showAlert('Giriş Hatası', errorMessage);
       }
     });
   }
@@ -62,7 +97,8 @@ export class LoginPage implements OnInit {
     const alert = await this.alertController.create({
       header,
       message,
-      buttons: ['Tamam']
+      buttons: ['Tamam'],
+      cssClass: 'ios-alert'
     });
     await alert.present();
   }

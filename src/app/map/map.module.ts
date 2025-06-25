@@ -1,8 +1,9 @@
 import { IonicModule } from '@ionic/angular';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MapPage } from './map.page';
+import { LocationFormModalComponent } from './location-form-modal.component';
 
 import { MapPageRoutingModule } from './map-routing.module';
 
@@ -11,8 +12,9 @@ import { MapPageRoutingModule } from './map-routing.module';
     IonicModule,
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     MapPageRoutingModule
   ],
-  declarations: [MapPage]
+  declarations: [MapPage, LocationFormModalComponent]
 })
 export class MapPageModule {}

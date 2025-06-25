@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { LoadingController, AlertController } from '@ionic/angular';
+import { LoadingController, AlertController, ActionSheetController } from '@ionic/angular';
 import { ApiService, Location } from '../services/api.service';
 import { OfflineService } from '../services/offline.service';
 
@@ -13,15 +13,17 @@ export class LocationsPage implements OnInit {
   locations: Location[] = [];
   filteredLocations: Location[] = [];
   searchTerm = '';
-  selectedType = '';
-  selectedCity = '';
+  selectedFilter = 'all';
   isOnline = true;
+  isSyncing = false;
+  pendingActionsCount = 0;
 
   constructor(
     private apiService: ApiService,
     private offlineService: OfflineService,
     private loadingController: LoadingController,
-    private alertController: AlertController
+    private alertController: AlertController,
+    private actionSheetController: ActionSheetController
   ) {}
 
   ngOnInit() {
@@ -32,6 +34,14 @@ export class LocationsPage implements OnInit {
     this.offlineService.cachedLocations$.subscribe(locations => {
       this.locations = locations;
       this.filterLocations();
+    });
+
+    this.offlineService.isSyncing$.subscribe(isSyncing => {
+      this.isSyncing = isSyncing;
+    });
+
+    this.offlineService.pendingActions$.subscribe(actions => {
+      this.pendingActionsCount = actions.length;
     });
 
     this.loadLocations();
@@ -69,13 +79,15 @@ export class LocationsPage implements OnInit {
     this.filteredLocations = this.locations.filter(location => {
       const matchesSearch = !this.searchTerm ||
         location.title.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        location.description.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        (location.description && location.description.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
         location.city.toLowerCase().includes(this.searchTerm.toLowerCase());
 
-      const matchesType = !this.selectedType || location.type === this.selectedType;
-      const matchesCity = !this.selectedCity || location.city === this.selectedCity;
+      let matchesFilter = true;
+      if (this.selectedFilter !== 'all') {
+        matchesFilter = location.type.toLowerCase() === this.selectedFilter.toLowerCase();
+      }
 
-      return matchesSearch && matchesType && matchesCity;
+      return matchesSearch && matchesFilter;
     });
   }
 
@@ -83,39 +95,70 @@ export class LocationsPage implements OnInit {
     this.filterLocations();
   }
 
-  onTypeChange() {
+  onFilterChange(event: any) {
+    this.selectedFilter = event.detail.value;
     this.filterLocations();
   }
 
-  onCityChange() {
-    this.filterLocations();
+  getLocationIcon(type: string): string {
+    if (type.toLowerCase().includes('depo')) {
+      return 'storefront';
+    }
+    return 'water';
   }
 
-  getUniqueTypes(): string[] {
-    return [...new Set(this.locations.map(loc => loc.type))];
+  getLocationIconClass(type: string): string {
+    if (type.toLowerCase().includes('depo')) {
+      return 'storage';
+    }
+    return 'water';
   }
 
-  getUniqueCities(): string[] {
-    return [...new Set(this.locations.map(loc => loc.city))];
-  }
+  async openLocationOptions(location: Location) {
+    const actionSheet = await this.actionSheetController.create({
+      header: location.title,
+      cssClass: 'location-action-sheet',
+      buttons: [
+        {
+          text: 'Düzenle',
+          icon: 'create-outline',
+          handler: () => {
+            this.editLocation(location);
+          }
+        },
+        {
+          text: 'Sil',
+          icon: 'trash-outline',
+          role: 'destructive',
+          handler: () => {
+            this.deleteLocation(location);
+          }
+        },
+        {
+          text: 'İptal',
+          icon: 'close-outline',
+          role: 'cancel'
+        }
+      ]
+    });
 
-  getTypeIcon(type: string): string {
-    return type.toLowerCase().includes('depo') ? 'cube' : 'water';
-  }
-
-  getTypeColor(type: string): string {
-    return type.toLowerCase().includes('depo') ? 'warning' : 'primary';
+    await actionSheet.present();
   }
 
   async editLocation(location: Location) {
     const alert = await this.alertController.create({
       header: 'Konum Düzenle',
+      subHeader: `"${location.title}" konumunu düzenleyin`,
+      cssClass: 'ios-alert',
       inputs: [
         {
           name: 'title',
           type: 'text',
           value: location.title,
-          placeholder: 'Başlık'
+          placeholder: 'Başlık',
+          attributes: {
+            required: true
+          }
         },
         {
           name: 'description',
@@ -124,43 +167,57 @@ export class LocationsPage implements OnInit {
           placeholder: 'Açıklama'
         },
         {
+          name: 'city',
+          type: 'text',
+          value: location.city,
+          placeholder: 'Şehir',
+          attributes: {
+            required: true
+          }
+        },
+        {
           name: 'latitude',
           type: 'number',
           value: location.latitude.toString(),
-          placeholder: 'Enlem'
+          placeholder: 'Enlem (örn: 35.1264)',
+          attributes: {
+            step: 'any',
+            required: true
+          }
         },
         {
           name: 'longitude',
           type: 'number',
           value: location.longitude.toString(),
-          placeholder: 'Boylam'
-        },
-        {
-          name: 'type',
-          type: 'text',
-          value: location.type,
-          placeholder: 'Tip'
-        },
-        {
-          name: 'city',
-          type: 'text',
-          value: location.city,
-          placeholder: 'Şehir'
+          placeholder: 'Boylam (örn: 33.4299)',
+          attributes: {
+            step: 'any',
+            required: true
+          }
         }
       ],
       buttons: [
         {
           text: 'İptal',
-          role: 'cancel'
+          role: 'cancel',
+          cssClass: 'alert-button-cancel'
         },
         {
           text: 'Güncelle',
+          cssClass: 'alert-button-confirm',
           handler: (data) => {
-            this.performUpdateLocation(location.id, {
-              ...data,
-              latitude: parseFloat(data.latitude),
-              longitude: parseFloat(data.longitude)
-            });
+            if (data.title && data.city && data.latitude && data.longitude) {
+              this.performUpdateLocation(location.id, {
+                ...data,
+                latitude: parseFloat(data.latitude),
+                longitude: parseFloat(data.longitude),
+                type: location.type // Mevcut tipi koru
+              });
+              return true;
+            } else {
+              this.showAlert('Hata', 'Tüm gerekli alanlar doldurulmalıdır!');
+              return false;
+            }
           }
         }
       ]
@@ -203,15 +260,19 @@ export class LocationsPage implements OnInit {
   async deleteLocation(location: Location) {
     const alert = await this.alertController.create({
       header: 'Konum Sil',
-      message: `"${location.title}" konumunu silmek istediğinizden emin misiniz?`,
+      subHeader: 'Bu işlem geri alınamaz',
+      message: `"${location.title}" konumunu kalıcı olarak silmek istediğinizden emin misiniz?`,
+      cssClass: 'ios-alert-destructive',
       buttons: [
         {
           text: 'İptal',
-          role: 'cancel'
+          role: 'cancel',
+          cssClass: 'alert-button-cancel'
         },
         {
           text: 'Sil',
           role: 'destructive',
+          cssClass: 'alert-button-destructive',
           handler: () => {
             this.performDeleteLocation(location.id);
           }
@@ -255,8 +316,7 @@ export class LocationsPage implements OnInit {
 
   clearFilters() {
     this.searchTerm = '';
-    this.selectedType = '';
-    this.selectedCity = '';
+    this.selectedFilter = 'all';
     this.filterLocations();
   }
 
@@ -264,7 +324,13 @@ export class LocationsPage implements OnInit {
     const alert = await this.alertController.create({
       header,
       message,
-      buttons: ['Tamam']
+      cssClass: 'ios-alert',
+      buttons: [
+        {
+          text: 'Tamam',
+          cssClass: 'alert-button-confirm'
+        }
+      ]
     });
     await alert.present();
   }

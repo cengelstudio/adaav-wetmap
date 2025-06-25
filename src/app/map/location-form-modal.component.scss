@@ -1,0 +1,146 @@
+.ios-modal-header {
+  --background: rgba(248, 249, 250, 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+}
+
+.ios-modal-content {
+  --background: #f2f2f7;
+}
+
+.form-container {
+  padding: 20px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.form-header {
+  text-align: center;
+  margin-bottom: 32px;
+
+  .form-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+
+    ion-icon {
+      font-size: 32px;
+      color: white;
+    }
+
+    &.water-icon {
+      background: linear-gradient(135deg, #007aff, #0051d2);
+    }
+
+    &.warehouse-icon {
+      background: linear-gradient(135deg, #ff9500, #ff6b00);
+    }
+  }
+
+  h2 {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #1d1d1f;
+  }
+
+  p {
+    margin: 0;
+    font-size: 16px;
+    color: #8e8e93;
+  }
+}
+
+.ios-form {
+  .form-group {
+    margin-bottom: 20px;
+
+    .ios-input {
+      --background: white;
+      --border-radius: 12px;
+      --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      --padding-start: 16px;
+      --padding-end: 16px;
+      --padding-top: 12px;
+      --padding-bottom: 12px;
+      margin-bottom: 8px;
+
+      ion-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #8e8e93;
+        margin-bottom: 4px;
+      }
+
+      ion-input, ion-textarea {
+        font-size: 16px;
+        color: #1d1d1f;
+        --placeholder-color: #c7c7cc;
+      }
+    }
+
+    .error-message {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 16px;
+      font-size: 13px;
+      color: #ff3b30;
+
+      ion-icon {
+        font-size: 14px;
+      }
+    }
+  }
+}
+
+.coordinates-section {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-top: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1d1d1f;
+  }
+
+  .coordinates-help {
+    margin: 0 0 20px 0;
+    font-size: 14px;
+    color: #8e8e93;
+  }
+
+  .coordinates-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+
+    .coordinate-input {
+      --box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    }
+  }
+
+  .get-location-btn {
+    --color: #007aff;
+    --border-color: #007aff;
+    --border-radius: 8px;
+    height: 36px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+}
+
+@media (max-width: 768px) {
+  .coordinates-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

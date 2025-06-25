@@ -58,43 +58,67 @@ export class UserManagementPage implements OnInit {
 
   async createUser() {
     const alert = await this.alertController.create({
-      header: 'Yeni Kullanıcı',
+      header: 'Yeni Kullanıcı Oluştur',
+      subHeader: 'Kullanıcı bilgilerini girin',
+      cssClass: 'ios-alert',
       inputs: [
         {
           name: 'name',
           type: 'text',
-          placeholder: 'Ad Soyad'
+          placeholder: 'Ad Soyad',
+          attributes: {
+            required: true,
+            maxlength: 50
+          }
         },
         {
           name: 'username',
           type: 'text',
-          placeholder: 'Kullanıcı Adı'
+          placeholder: 'Kullanıcı Adı',
+          attributes: {
+            required: true,
+            minlength: 3,
+            maxlength: 20
+          }
         },
         {
           name: 'password',
           type: 'password',
-          placeholder: 'Şifre'
+          placeholder: 'Şifre (min. 6 karakter)',
+          attributes: {
+            required: true,
+            minlength: 6
+          }
         },
         {
           name: 'role',
           type: 'text',
-          placeholder: 'Rol (Opsiyonel)',
-          value: 'AUTHORIZED_PERSON'
+          placeholder: 'Rol',
+          value: 'AUTHORIZED_PERSON',
+          attributes: {
+            readonly: true
+          }
         }
       ],
       buttons: [
         {
           text: 'İptal',
-          role: 'cancel'
+          role: 'cancel',
+          cssClass: 'alert-button-cancel'
         },
         {
           text: 'Oluştur',
+          cssClass: 'alert-button-confirm',
           handler: (data) => {
             if (data.name && data.username && data.password) {
+              if (data.password.length < 6) {
+                this.showAlert('Hata', 'Şifre en az 6 karakter olmalıdır!');
+                return false;
+              }
               this.performCreateUser(data);
               return true;
             } else {
-              this.showAlert('Hata', 'Tüm alanlar gereklidir!');
+              this.showAlert('Hata', 'Tüm gerekli alanlar doldurulmalıdır!');
               return false;
             }
           }
@@ -196,15 +220,19 @@ export class UserManagementPage implements OnInit {
   async deleteUser(user: User) {
     const alert = await this.alertController.create({
       header: 'Kullanıcı Sil',
-      message: `${user.name} kullanıcısını silmek istediğinizden emin misiniz?`,
+      subHeader: 'Bu işlem geri alınamaz',
+      message: `"${user.name}" kullanıcısını kalıcı olarak silmek istediğinizden emin misiniz?`,
+      cssClass: 'ios-alert-destructive',
       buttons: [
         {
           text: 'İptal',
-          role: 'cancel'
+          role: 'cancel',
+          cssClass: 'alert-button-cancel'
         },
         {
           text: 'Sil',
           role: 'destructive',
+          cssClass: 'alert-button-destructive',
           handler: () => {
             this.performDeleteUser(user.id);
           }
@@ -242,7 +270,13 @@ export class UserManagementPage implements OnInit {
     const alert = await this.alertController.create({
       header,
       message,
-      buttons: ['Tamam']
+      cssClass: 'ios-alert',
+      buttons: [
+        {
+          text: 'Tamam',
+          cssClass: 'alert-button-confirm'
+        }
+      ]
     });
     await alert.present();
   }

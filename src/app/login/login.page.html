@@ -1,38 +1,44 @@
 <ion-content class="login-content">
   <div class="login-wrapper">
+    <!-- Offline Indicator -->
+    <div *ngIf="!isOnline" class="offline-banner">
+      <ion-icon name="cloud-offline-outline"></ion-icon>
+      <span>Çevrimdışı Mod</span>
+    </div>
+
     <div class="login-card">
       <!-- Logo ve Başlık -->
-    <div class="logo-section">
+      <div class="logo-section">
         <div class="app-icon">
           <ion-icon name="leaf" class="tree-icon"></ion-icon>
         </div>
         <h1 class="app-title">AdaAv: Sulak Haritası</h1>
         <p class="app-subtitle">K.K.T.C. Avcılık Federasyonu</p>
-    </div>
+      </div>
 
       <!-- Form Alanları -->
-    <div class="form-section">
+      <div class="form-section">
         <div class="input-group">
           <ion-item class="custom-input" lines="none">
             <ion-icon name="person-outline" slot="start" class="input-icon"></ion-icon>
-        <ion-input
-          type="text"
+            <ion-input
+              type="text"
               placeholder="Kullanıcı Adı"
-          [(ngModel)]="username"
-          required>
-        </ion-input>
-      </ion-item>
+              [(ngModel)]="username"
+              required>
+            </ion-input>
+          </ion-item>
         </div>
 
         <div class="input-group">
           <ion-item class="custom-input" lines="none">
             <ion-icon name="lock-closed-outline" slot="start" class="input-icon"></ion-icon>
-        <ion-input
+            <ion-input
               [type]="showPassword ? 'text' : 'password'"
               placeholder="Şifre"
-          [(ngModel)]="password"
-          required>
-        </ion-input>
+              [(ngModel)]="password"
+              required>
+            </ion-input>
             <ion-button
               fill="clear"
               slot="end"
@@ -43,22 +49,32 @@
                 class="password-icon">
               </ion-icon>
             </ion-button>
-      </ion-item>
+          </ion-item>
         </div>
 
-      <ion-button
-        expand="full"
+        <!-- Offline Destek Seçeneği -->
+        <div class="checkbox-group" *ngIf="isOnline">
+          <ion-checkbox
+            [(ngModel)]="saveCredentials"
+            class="save-credentials-checkbox"></ion-checkbox>
+          <ion-label class="save-credentials-label">
+            Çevrimdışı erişim için bilgileri kaydet
+          </ion-label>
+        </div>
+
+        <ion-button
+          expand="full"
           class="login-button"
-        (click)="login()"
-        [disabled]="!username || !password">
-        Giriş Yap
-      </ion-button>
+          (click)="login()"
+          [disabled]="!username || !password">
+          {{ isOnline ? 'Giriş Yap' : 'Çevrimdışı Giriş' }}
+        </ion-button>
       </div>
     </div>
 
     <!-- Copyright -->
     <div class="copyright">
-      <p>© 2024 AdaAv</p>
+      <p>© 2025 AdaAv</p>
     </div>
   </div>
 </ion-content>

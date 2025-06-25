@@ -83,3 +83,240 @@ ion-card {
 }
 
 /* Light theme only - dark mode disabled */
+
+/* Safe Area Support */
+:root {
+  --safe-area-top: env(safe-area-inset-top);
+  --safe-area-bottom: env(safe-area-inset-bottom);
+  --safe-area-left: env(safe-area-inset-left);
+  --safe-area-right: env(safe-area-inset-right);
+}
+
+/* Safe area for mobile devices */
+ion-app {
+  padding-top: var(--safe-area-top);
+}
+
+/* Header safe area */
+ion-header {
+  padding-top: var(--safe-area-top);
+}
+
+ion-header ion-toolbar {
+  --padding-top: var(--safe-area-top);
+}
+
+/* Content safe area adjustments */
+ion-content {
+  --padding-top: var(--safe-area-top);
+}
+
+/* Android specific fixes */
+.md {
+  ion-header {
+    box-shadow: none;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  ion-toolbar {
+    --border-width: 0 0 1px 0;
+    --border-style: solid;
+    --border-color: #e0e0e0;
+  }
+}
+
+/* iOS-style alert styles */
+.ios-alert {
+  --backdrop-opacity: 0.4;
+
+  .alert-wrapper {
+    border-radius: 16px;
+    backdrop-filter: blur(20px);
+    background: rgba(248, 249, 250, 0.95);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    max-width: 320px;
+
+    .alert-head {
+      padding: 24px 24px 16px 24px;
+      text-align: center;
+
+      .alert-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1d1d1f;
+        margin-bottom: 8px;
+      }
+
+      .alert-sub-title {
+        font-size: 14px;
+        color: #8e8e93;
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+
+      .alert-message {
+        font-size: 14px;
+        color: #48484a;
+        line-height: 1.4;
+      }
+    }
+
+    .alert-input-group {
+      padding: 0 24px;
+
+      .alert-input-wrapper {
+        margin-bottom: 16px;
+
+        .alert-input {
+          background: white;
+          border: 1px solid #e5e5e7;
+          border-radius: 8px;
+          padding: 12px 16px;
+          font-size: 16px;
+          color: #1d1d1f;
+
+          &:focus {
+            border-color: #007aff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+          }
+
+          &::placeholder {
+            color: #c7c7cc;
+          }
+        }
+
+        textarea.alert-input {
+          resize: vertical;
+          min-height: 80px;
+          font-family: inherit;
+        }
+      }
+    }
+
+    .alert-button-group {
+      border-top: 0.5px solid rgba(0, 0, 0, 0.1);
+      display: flex;
+
+      .alert-button {
+        flex: 1;
+        min-height: 48px;
+        font-size: 16px;
+        font-weight: 500;
+        border: none;
+        background: transparent;
+
+        &.alert-button-cancel {
+          color: #8e8e93;
+          border-right: 0.5px solid rgba(0, 0, 0, 0.1);
+        }
+
+        &.alert-button-confirm {
+          color: #007aff;
+          font-weight: 600;
+        }
+
+        &.alert-button-destructive {
+          color: #ff3b30;
+          font-weight: 600;
+        }
+
+        &:active {
+          background: rgba(0, 0, 0, 0.05);
+        }
+      }
+    }
+  }
+}
+
+.ios-alert-destructive {
+  .alert-wrapper {
+    .alert-head .alert-title {
+      color: #ff3b30;
+    }
+  }
+}
+
+/* iOS-style modal and action sheet styles */
+.ios-modal {
+  --backdrop-opacity: 0.4;
+  --border-radius: 16px;
+  --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
+
+  .modal-wrapper {
+    border-radius: 16px;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+  }
+}
+
+.ios-action-sheet {
+  --backdrop-opacity: 0.4;
+
+  .action-sheet-wrapper {
+    border-radius: 16px 16px 0 0;
+    backdrop-filter: blur(20px);
+    background: rgba(248, 249, 250, 0.95);
+
+    .action-sheet-container {
+      padding: 0;
+
+      .action-sheet-group {
+        background: transparent;
+
+        .action-sheet-title {
+          font-size: 18px;
+          font-weight: 600;
+          color: #1d1d1f;
+          padding: 20px 20px 8px 20px;
+        }
+
+        .action-sheet-sub-title {
+          font-size: 14px;
+          color: #8e8e93;
+          padding: 0 20px 20px 20px;
+          margin-top: -8px;
+        }
+
+        .action-sheet-button {
+          font-size: 16px;
+          font-weight: 500;
+          min-height: 56px;
+          border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+
+          &.action-button-primary {
+            color: #007aff;
+
+            .action-sheet-icon {
+              color: #007aff;
+            }
+          }
+
+          &.action-button-secondary {
+            color: #ff9500;
+
+            .action-sheet-icon {
+              color: #ff9500;
+            }
+          }
+
+          &.action-button-cancel {
+            color: #ff3b30;
+            background: rgba(255, 59, 48, 0.1);
+            margin-top: 8px;
+            border-radius: 12px;
+            border: none;
+
+            .action-sheet-icon {
+              color: #ff3b30;
+            }
+          }
+
+          &:last-child {
+            border-bottom: none;
+          }
+        }
+      }
+    }
+  }
+}

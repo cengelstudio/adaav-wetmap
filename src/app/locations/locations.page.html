@@ -11,107 +11,93 @@
     </ion-toolbar>
   </ion-header>
 
-  <div class="ion-padding">
+  <div class="locations-container">
     <!-- Offline Indicator -->
     <ion-chip *ngIf="!isOnline" color="warning" class="offline-chip">
       <ion-icon name="cloud-offline"></ion-icon>
       <ion-label>Çevrimdışı</ion-label>
+      <ion-badge *ngIf="pendingActionsCount > 0" color="danger">{{ pendingActionsCount }}</ion-badge>
     </ion-chip>
 
-    <!-- Search and Filters -->
-    <ion-searchbar
-      [(ngModel)]="searchTerm"
-      (ionInput)="onSearchChange()"
-      placeholder="Konum ara..."
-      debounce="300">
-    </ion-searchbar>
+    <!-- Sync Status -->
+    <ion-chip *ngIf="isOnline && isSyncing" color="primary" class="sync-chip">
+      <ion-icon name="sync"></ion-icon>
+      <ion-label>Senkronize ediliyor...</ion-label>
+    </ion-chip>
 
-    <div class="filters-container">
-      <ion-select
-        [(ngModel)]="selectedType"
-        (ionChange)="onTypeChange()"
-        placeholder="Tip Seç"
-        interface="popover">
-        <ion-select-option value="">Tümü</ion-select-option>
-        <ion-select-option *ngFor="let type of getUniqueTypes()" [value]="type">
-          {{ type }}
-        </ion-select-option>
-      </ion-select>
-
-      <ion-select
-        [(ngModel)]="selectedCity"
-        (ionChange)="onCityChange()"
-        placeholder="Şehir Seç"
-        interface="popover">
-        <ion-select-option value="">Tümü</ion-select-option>
-        <ion-select-option *ngFor="let city of getUniqueCities()" [value]="city">
-          {{ city }}
-        </ion-select-option>
-      </ion-select>
-
-      <ion-button
-        fill="clear"
-        size="small"
-        (click)="clearFilters()"
-        *ngIf="searchTerm || selectedType || selectedCity">
-        <ion-icon name="close" slot="icon-only"></ion-icon>
-      </ion-button>
+    <!-- Search Bar -->
+    <div class="search-container">
+      <ion-searchbar
+        [(ngModel)]="searchTerm"
+        (ionInput)="onSearchChange()"
+        placeholder="Konum ara..."
+        debounce="300"
+        class="modern-searchbar">
+      </ion-searchbar>
     </div>
 
-    <!-- Results Count -->
-    <ion-text color="medium" class="results-count">
-      {{ filteredLocations.length }} sonuç bulundu
-    </ion-text>
+    <!-- Filter Segments -->
+    <div class="filter-container">
+      <ion-segment
+        [(ngModel)]="selectedFilter"
+        (ionChange)="onFilterChange($event)"
+        class="modern-segment">
+        <ion-segment-button value="all">
+          <ion-label>Tümü</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="wetland">
+          <ion-label>Sulak Alan</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="depot">
+          <ion-label>Depo</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+    </div>
 
-    <!-- Locations List -->
-    <ion-list>
-      <ion-item-sliding *ngFor="let location of filteredLocations">
-        <ion-item>
-          <ion-icon
-            [name]="getTypeIcon(location.type)"
-            [color]="getTypeColor(location.type)"
-            slot="start">
-          </ion-icon>
-          <ion-label>
-            <h2>{{ location.title }}</h2>
-            <p>{{ location.description }}</p>
-            <div class="location-details">
-              <ion-chip size="small" [color]="getTypeColor(location.type)">
-                <ion-icon [name]="getTypeIcon(location.type)"></ion-icon>
-                <ion-label>{{ location.type }}</ion-label>
-              </ion-chip>
-              <ion-chip size="small" color="medium">
-                <ion-icon name="location"></ion-icon>
-                <ion-label>{{ location.city }}</ion-label>
-              </ion-chip>
-            </div>
-            <p class="coordinates">
-              <ion-icon name="navigate" color="medium"></ion-icon>
-              {{ location.latitude.toFixed(6) }}, {{ location.longitude.toFixed(6) }}
+    <!-- Location Cards -->
+    <div class="locations-grid">
+      <div
+        *ngFor="let location of filteredLocations"
+        class="location-card"
+        (click)="openLocationOptions(location)">
+
+        <div class="card-header">
+          <div class="location-icon">
+            <ion-icon
+              [name]="getLocationIcon(location.type)"
+              [class]="'icon-' + getLocationIconClass(location.type)">
+            </ion-icon>
+          </div>
+          <div class="location-info">
+            <h3 class="location-title">{{ location.title }}</h3>
+            <p class="location-description" [ngClass]="{'no-description': !location.description}">
+              {{ location.description || 'açıklama yok' }}
             </p>
-          </ion-label>
-        </ion-item>
+          </div>
+        </div>
 
-        <ion-item-options side="end">
-          <ion-item-option color="primary" (click)="editLocation(location)">
-            <ion-icon name="create" slot="icon-only"></ion-icon>
-          </ion-item-option>
-          <ion-item-option color="danger" (click)="deleteLocation(location)">
-            <ion-icon name="trash" slot="icon-only"></ion-icon>
-          </ion-item-option>
-        </ion-item-options>
-      </ion-item-sliding>
-    </ion-list>
+        <div class="card-footer">
+          <div class="coordinates">
+            <ion-icon name="navigate-outline" class="coord-icon"></ion-icon>
+            <span>{{ location.latitude.toFixed(4) }}</span>
+            <ion-icon name="ellipse" class="separator"></ion-icon>
+            <span>{{ location.longitude.toFixed(4) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Empty State -->
     <div *ngIf="filteredLocations.length === 0" class="empty-state">
-      <ion-icon name="location" size="large" color="medium"></ion-icon>
+      <div class="empty-icon">
+        <ion-icon name="location-outline"></ion-icon>
+      </div>
       <h3>Konum bulunamadı</h3>
       <p>Arama kriterlerinizi değiştirmeyi deneyin</p>
       <ion-button
         fill="clear"
         (click)="clearFilters()"
-        *ngIf="searchTerm || selectedType || selectedCity">
+        *ngIf="searchTerm || selectedFilter !== 'all'">
         Filtreleri Temizle
       </ion-button>
     </div>

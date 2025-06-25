@@ -1,9 +1,11 @@
 import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
-import { LoadingController, AlertController, ModalController } from '@ionic/angular';
+import { LoadingController, AlertController, ModalController, ActionSheetController } from '@ionic/angular';
 import * as L from 'leaflet';
 import { ApiService, Location } from '../services/api.service';
 import { OfflineService } from '../services/offline.service';
 import { Geolocation } from '@capacitor/geolocation';
+import { MapCacheService, MapCacheMetadata } from '../services/map-cache.service';
+import { LocationFormModalComponent } from './location-form-modal.component';
 
 @Component({
   selector: 'app-map',
@@ -15,13 +17,22 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
   private map: L.Map | undefined;
   locations: Location[] = [];
   isOnline = true;
+  private offlineTileLayer: L.TileLayer | undefined;
+  private onlineTileLayer: L.TileLayer | undefined;
+  pendingActionsCount = 0;
+  cachedMaps: MapCacheMetadata[] = [];
+  currentCachedMap: string | null = null;
+  downloadProgress = 0;
+  isDownloading = false;
 
   constructor(
     private apiService: ApiService,
     private offlineService: OfflineService,
+    private mapCacheService: MapCacheService,
     private loadingController: LoadingController,
     private alertController: AlertController,
-    private modalController: ModalController
+    private modalController: ModalController,
+    private actionSheetController: ActionSheetController
   ) {
     // Global window functions for popup buttons
     (window as any).editLocation = (locationId: string) => {
@@ -31,28 +42,61 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
     (window as any).deleteLocation = (locationId: string) => {
       this.deleteLocation(locationId);
     };
+
+    // Leaflet icon path fix
+    const iconRetinaUrl = 'assets/leaflet/marker-icon-2x.png';
+    const iconUrl = 'assets/leaflet/marker-icon.png';
+    const shadowUrl = 'assets/leaflet/marker-shadow.png';
+    const iconDefault = L.icon({
+      iconRetinaUrl,
+      iconUrl,
+      shadowUrl,
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      tooltipAnchor: [16, -28],
+      shadowSize: [41, 41]
+    });
+    L.Marker.prototype.options.icon = iconDefault;
   }
 
   ngOnInit() {
-    // Online durumunu dinle
+    // Network durumunu takip et
     this.offlineService.isOnline$.subscribe(isOnline => {
       this.isOnline = isOnline;
+      this.updateMapTiles();
     });
 
-    // Cached locations'ı dinle
+    // Cached locations'ı takip et
     this.offlineService.cachedLocations$.subscribe(locations => {
       this.locations = locations;
-      if (this.map) {
-        this.updateMapMarkers();
-      }
+      this.updateMapMarkers();
     });
+
+    // Pending actions sayısını takip et
+    this.offlineService.pendingActions$.subscribe(actions => {
+      this.pendingActionsCount = actions.length;
+    });
+
+    // Map cache durumunu takip et
+    this.mapCacheService.cachedMaps$.subscribe(maps => {
+      this.cachedMaps = maps;
+    });
+
+    this.mapCacheService.downloadProgress$.subscribe(progress => {
+      this.downloadProgress = progress;
+    });
+
+    this.mapCacheService.isDownloading$.subscribe(isDownloading => {
+      this.isDownloading = isDownloading;
+    });
+
+    this.loadLocations();
   }
 
   ngAfterViewInit() {
-    // Dom'un yüklenmesini bekle
     setTimeout(() => {
       this.initializeMap();
-      this.loadLocations();
     }, 100);
   }
 
@@ -63,53 +107,223 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   initializeMap() {
-    try {
-      // DOM elementinin varlığını kontrol et
-      const mapElement = document.getElementById('mapId');
-      if (!mapElement) {
-        console.error('Map element not found');
-        return;
+    if (this.map) {
+      this.map.remove();
+    }
+
+    // Haritayı initialize et
+    this.map = L.map('map', {
+      center: [35.1264, 33.4299], // Kıbrıs koordinatları
+      zoom: 10,
+      zoomControl: true,
+      attributionControl: true
+    });
+
+    // Online tile layer
+    this.onlineTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 18,
+      minZoom: 6
+    });
+
+    // Offline tile layer (cached tiles için)
+    this.offlineTileLayer = L.tileLayer('', {
+      attribution: '© OpenStreetMap contributors (Offline)',
+      maxZoom: 18,
+      minZoom: 6
+    });
+
+    this.updateMapTiles();
+
+    // Harita kontrollerini ekle
+    this.addMapControls();
+
+    // Markers'ı yükle
+    this.updateMapMarkers();
+
+    // Kullanıcı konumunu göster
+    this.showUserLocation();
+  }
+
+  updateMapTiles() {
+    if (!this.map) return;
+
+    // Mevcut tile layer'ları temizle
+    this.map.eachLayer((layer) => {
+      if (layer instanceof L.TileLayer) {
+        this.map!.removeLayer(layer);
       }
+    });
 
-      // KKTC koordinatları
-      const kktcCenter: [number, number] = [35.1264, 33.4299];
-
-      this.map = L.map('mapId', {
-        zoomControl: true,
-        scrollWheelZoom: true,
-        doubleClickZoom: true,
-        dragging: true
-      }).setView(kktcCenter, 10);
-
-      // OpenStreetMap tiles
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 18,
-        minZoom: 8
-      }).addTo(this.map);
-
-      // Leaflet icon fix for Angular
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'assets/leaflet/marker-icon-2x.png',
-        iconUrl: 'assets/leaflet/marker-icon.png',
-        shadowUrl: 'assets/leaflet/marker-shadow.png',
+    if (this.isOnline && this.onlineTileLayer) {
+      // Online mode: Normal tiles
+      this.onlineTileLayer.addTo(this.map);
+    } else if (this.currentCachedMap) {
+      // Offline mode with cached tiles
+      this.loadCachedTileLayer(this.currentCachedMap);
+    } else {
+      // Offline mode: Simple placeholder
+      const offlineLayer = L.tileLayer('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', {
+        attribution: 'Çevrimdışı Mod - © OpenStreetMap contributors',
+        opacity: 0.3
       });
+      offlineLayer.addTo(this.map);
 
-      // Harita boyutunu resize et
-      setTimeout(() => {
-        this.map?.invalidateSize();
-      }, 100);
+      // Basit arka plan rengi ekle
+      const mapContainer = this.map.getContainer();
+      mapContainer.style.backgroundColor = '#e8f4f8';
+    }
+  }
 
-      console.log('Map initialized successfully');
+  async loadCachedTileLayer(mapName: string) {
+    if (!this.map) return;
+
+    const cachedTileLayer = L.tileLayer('', {
+      attribution: `© OpenStreetMap contributors (Cached: ${mapName})`,
+      maxZoom: 18,
+      minZoom: 6
+    });
+
+    // Override getTileUrl to use cached tiles
+    (cachedTileLayer as any).getTileUrl = async (coords: any) => {
+      const cachedUrl = await this.mapCacheService.getCachedTileUrl(coords.x, coords.y, coords.z, mapName);
+      return cachedUrl || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+    };
+
+    cachedTileLayer.addTo(this.map);
+  }
+
+  addMapControls() {
+    if (!this.map) return;
+
+    // Sync butonunu ekle (offline mode için)
+    const syncControl = L.Control.extend({
+      onAdd: () => {
+        const container = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
+        const button = L.DomUtil.create('a', 'sync-control', container);
+        button.innerHTML = `
+          <div class="sync-button ${this.isOnline ? 'online' : 'offline'}">
+            <ion-icon name="${this.isOnline ? 'cloud-done' : 'cloud-offline'}"></ion-icon>
+            ${this.pendingActionsCount > 0 ? `<span class="badge">${this.pendingActionsCount}</span>` : ''}
+          </div>
+        `;
+        button.title = this.isOnline ? 'Çevrimiçi' : `Çevrimdışı (${this.pendingActionsCount} bekleyen işlem)`;
+
+        L.DomEvent.on(button, 'click', (e) => {
+          L.DomEvent.stopPropagation(e);
+          this.showSyncStatus();
+        });
+
+        return container;
+      }
+    });
+
+    // Cache butonunu ekle
+    const cacheControl = L.Control.extend({
+      onAdd: () => {
+        const container = L.DomUtil.create('div', 'leaflet-control leaflet-bar');
+        const button = L.DomUtil.create('a', 'cache-control', container);
+        button.innerHTML = `
+          <div class="cache-button">
+            <ion-icon name="download-outline"></ion-icon>
+            ${this.cachedMaps.length > 0 ? `<span class="badge">${this.cachedMaps.length}</span>` : ''}
+          </div>
+        `;
+        button.title = 'Harita Cache Yönetimi';
+
+        L.DomEvent.on(button, 'click', (e) => {
+          L.DomEvent.stopPropagation(e);
+          this.showCacheManagement();
+        });
+
+        return container;
+      }
+    });
+
+    new syncControl({ position: 'topright' }).addTo(this.map);
+    new cacheControl({ position: 'topright' }).addTo(this.map);
+  }
+
+  async showSyncStatus() {
+    let message = '';
+    let header = '';
+
+    if (this.isOnline) {
+      header = 'Çevrimiçi';
+      message = 'İnternet bağlantınız aktif. Veriler gerçek zamanlı olarak senkronize ediliyor.';
+
+      if (this.pendingActionsCount > 0) {
+        message += `\n\n${this.pendingActionsCount} bekleyen işlem senkronize ediliyor...`;
+      }
+    } else {
+      header = 'Çevrimdışı Mod';
+      message = 'İnternet bağlantınız yok. Yaptığınız değişiklikler yerel olarak kaydediliyor.';
+
+      if (this.pendingActionsCount > 0) {
+        message += `\n\n${this.pendingActionsCount} işlem internet bağlantısı geldiğinde senkronize edilecek.`;
+      }
+    }
+
+    const alert = await this.alertController.create({
+      header,
+      message,
+      buttons: ['Tamam'],
+      cssClass: 'ios-alert'
+    });
+
+    await alert.present();
+  }
+
+  async showUserLocation() {
+    try {
+      const position = await Geolocation.getCurrentPosition();
+      const userLocation: [number, number] = [position.coords.latitude, position.coords.longitude];
+
+      const userIcon = this.getIconForType('user');
+      L.marker(userLocation, { icon: userIcon })
+        .addTo(this.map!)
+        .bindPopup(`
+          <div class="ios-popup user-location-popup">
+            <div class="popup-header">
+              <div class="popup-icon user-icon"></div>
+              <div class="popup-title">
+                <h3>Mevcut Konumunuz</h3>
+                <span class="popup-type">GPS Konumu</span>
+              </div>
+            </div>
+            <div class="popup-content">
+              <div class="popup-info">
+                <div class="info-row">
+                  <div class="info-icon coordinate-icon"></div>
+                  <div class="info-details">
+                    <span class="info-label">Koordinat</span>
+                    <span class="info-value">${userLocation[0].toFixed(6)}, ${userLocation[1].toFixed(6)}</span>
+                  </div>
+                </div>
+                <div class="info-row">
+                  <div class="info-icon time-icon"></div>
+                  <div class="info-details">
+                    <span class="info-label">Güncellenme</span>
+                    <span class="info-value">${new Date().toLocaleTimeString('tr-TR')}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `, {
+          maxWidth: 300,
+          className: 'ios-popup-wrapper user-popup'
+        });
     } catch (error) {
-      console.error('Error initializing map:', error);
+      console.log('Konum erişimi reddedildi veya mevcut değil:', error);
     }
   }
 
   async loadLocations() {
     const loading = await this.loadingController.create({
-      message: 'Konumlar yükleniyor...'
+      message: 'Harita verileri yükleniyor...',
+      spinner: 'dots',
+      duration: 15000
     });
     await loading.present();
 
@@ -177,24 +391,58 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
         const marker = L.marker([location.latitude, location.longitude], { icon })
           .addTo(this.map!);
 
+        const iconType = location.type.toLowerCase().includes('depot') ? 'warehouse' : 'water';
+        const locationTypeText = location.type.toLowerCase().includes('depot') ? 'Depo Alanı' : 'Sulak Alan';
+
         marker.bindPopup(`
-          <div class="custom-popup">
-            <h6>${location.title}</h6>
-            <p>${location.description}</p>
-            <p><strong>Tip:</strong> ${location.type}</p>
-            <p><strong>Şehir:</strong> ${location.city}</p>
-            <div class="popup-buttons">
-              <button onclick="window.editLocation('${location.id}')">Düzenle</button>
-              <button onclick="window.deleteLocation('${location.id}')">Sil</button>
+          <div class="ios-popup">
+            <div class="popup-header">
+              <div class="popup-icon ${iconType}-icon"></div>
+              <div class="popup-title">
+                <h3>${location.title}</h3>
+                <span class="popup-type">${locationTypeText}</span>
+              </div>
+            </div>
+            <div class="popup-content">
+              <div class="popup-description">
+                <p>${location.description}</p>
+              </div>
+              <div class="popup-info">
+                <div class="info-row">
+                  <div class="info-icon location-icon"></div>
+                  <div class="info-details">
+                    <span class="info-label">Konum</span>
+                    <span class="info-value">${location.city}</span>
+                  </div>
+                </div>
+                <div class="info-row">
+                  <div class="info-icon coordinate-icon"></div>
+                  <div class="info-details">
+                    <span class="info-label">Koordinat</span>
+                    <span class="info-value">${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        `);
+        `, {
+          maxWidth: 300,
+          className: 'ios-popup-wrapper'
+        });
       }
     });
   }
 
   getIconForType(type: string): L.DivIcon {
-    const color = type.toLowerCase().includes('depo') ? '#ff9800' : '#2196f3'; // turuncu/mavi
+    let color = '#2196f3'; // Varsayılan mavi
+
+    if (type.toLowerCase().includes('depot')) {
+      color = '#ff9800'; // Turuncu
+    } else if (type.toLowerCase().includes('wetland')) {
+      color = '#4caf50'; // Yeşil
+    } else if (type.toLowerCase().includes('user') || type.toLowerCase().includes('kullanici')) {
+      color = '#f44336'; // Kırmızı
+    }
 
     return L.divIcon({
       className: 'custom-div-icon',
@@ -205,25 +453,32 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async addNewLocation() {
-    const actionSheet = await this.alertController.create({
+    const actionSheet = await this.actionSheetController.create({
       header: 'Yeni Konum Ekle',
-      message: 'Hangi tip konum eklemek istiyorsunuz?',
+      subHeader: 'Hangi tip konum eklemek istiyorsunuz?',
+      cssClass: 'ios-action-sheet',
       buttons: [
         {
           text: 'Sulak Alan',
+          icon: 'water',
+          cssClass: 'action-button-primary',
           handler: () => {
-            this.openLocationForm('sulak');
+            this.openLocationForm('wetland');
           }
         },
         {
-          text: 'Depo',
+          text: 'Depo Alanı',
+          icon: 'business',
+          cssClass: 'action-button-secondary',
           handler: () => {
-            this.openLocationForm('depo');
+            this.openLocationForm('depot');
           }
         },
         {
           text: 'İptal',
-          role: 'cancel'
+          icon: 'close',
+          role: 'cancel',
+          cssClass: 'action-button-cancel'
         }
       ]
     });
@@ -241,68 +496,34 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
       console.warn('Konum alınamadı:', error);
     }
 
-    const alert = await this.alertController.create({
-      header: `Yeni ${type === 'sulak' ? 'Sulak Alan' : 'Depo'} Ekle`,
-      inputs: [
-        {
-          name: 'title',
-          type: 'text',
-          placeholder: 'Başlık'
-        },
-        {
-          name: 'description',
-          type: 'textarea',
-          placeholder: 'Açıklama'
-        },
-        {
-          name: 'latitude',
-          type: 'number',
-          placeholder: 'Enlem',
-          value: currentLocation ? currentLocation[0].toString() : ''
-        },
-        {
-          name: 'longitude',
-          type: 'number',
-          placeholder: 'Boylam',
-          value: currentLocation ? currentLocation[1].toString() : ''
-        },
-        {
-          name: 'city',
-          type: 'text',
-          placeholder: 'Şehir'
-        }
-      ],
-      buttons: [
-        {
-          text: 'İptal',
-          role: 'cancel'
-        },
-        {
-          text: 'Ekle',
-          handler: (data) => {
-            if (data.title && data.latitude && data.longitude) {
-              this.performAddLocation({
-                ...data,
-                type: type,
-                latitude: parseFloat(data.latitude),
-                longitude: parseFloat(data.longitude)
-              });
-              return true;
-            } else {
-              this.showAlert('Hata', 'Tüm alanlar gereklidir!');
-              return false;
-            }
-          }
-        }
-      ]
+    const modal = await this.modalController.create({
+      component: LocationFormModalComponent,
+      cssClass: 'ios-modal',
+      componentProps: {
+        type: type,
+        currentLocation: currentLocation
+      },
+      presentingElement: await this.modalController.getTop()
     });
 
-    await alert.present();
+    modal.onDidDismiss().then((result) => {
+      if (result.data && result.data.confirmed) {
+        this.performAddLocation({
+          ...result.data.formData,
+          latitude: parseFloat(result.data.formData.latitude),
+          longitude: parseFloat(result.data.formData.longitude)
+        });
+      }
+    });
+
+    return await modal.present();
   }
 
   async performAddLocation(locationData: Omit<Location, 'id'>) {
     const loading = await this.loadingController.create({
-      message: 'Konum ekleniyor...'
+      message: 'Yeni konum kaydediliyor...',
+      spinner: 'crescent',
+      duration: 10000
     });
     await loading.present();
 
@@ -335,7 +556,13 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
     const alert = await this.alertController.create({
       header,
       message,
-      buttons: ['Tamam']
+      cssClass: 'ios-alert',
+      buttons: [
+        {
+          text: 'Tamam',
+          cssClass: 'alert-button-confirm'
+        }
+      ]
     });
     await alert.present();
   }
@@ -357,5 +584,176 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
       // TODO: Implement delete functionality
       this.showAlert('Sil', `${location.title} silme özelliği yakında eklenecek.`);
     }
+  }
+
+  async showCacheManagement() {
+    const actionSheet = await this.actionSheetController.create({
+      header: 'Harita Cache Yönetimi',
+      subHeader: `${this.cachedMaps.length} harita önbelleğe alındı`,
+      cssClass: 'cache-action-sheet',
+      buttons: [
+        {
+          text: 'Mevcut Alanı İndir',
+          icon: 'download-outline',
+          handler: () => {
+            this.downloadCurrentArea();
+          }
+        },
+        {
+          text: 'Cache Edilmiş Haritalar',
+          icon: 'list-outline',
+          handler: () => {
+            this.showCachedMaps();
+          }
+        },
+        {
+          text: 'Cache Temizle',
+          icon: 'trash-outline',
+          role: 'destructive',
+          handler: () => {
+            this.clearCache();
+          }
+        },
+        {
+          text: 'İptal',
+          icon: 'close-outline',
+          role: 'cancel'
+        }
+      ]
+    });
+
+    await actionSheet.present();
+  }
+
+  async downloadCurrentArea() {
+    if (!this.map) return;
+
+    const bounds = this.map.getBounds();
+    const zoom = this.map.getZoom();
+
+    const alert = await this.alertController.create({
+      header: 'Harita Alanını İndir',
+      subHeader: 'Bu alan için harita önbelleğe alınacak',
+      inputs: [
+        {
+          name: 'name',
+          type: 'text',
+          placeholder: 'Harita adı (örn: Kıbrıs Merkez)',
+          value: 'Kıbrıs Alanı ' + new Date().toLocaleDateString('tr-TR')
+        }
+      ],
+      buttons: [
+        {
+          text: 'İptal',
+          role: 'cancel'
+        },
+        {
+          text: 'İndir',
+          handler: async (data) => {
+            if (data.name) {
+              await this.startMapDownload(data.name, bounds, Math.max(6, zoom - 2), Math.min(16, zoom + 2));
+            }
+          }
+        }
+      ],
+      cssClass: 'ios-alert'
+    });
+
+    await alert.present();
+  }
+
+  async startMapDownload(name: string, bounds: any, minZoom: number, maxZoom: number) {
+    const loading = await this.loadingController.create({
+      message: 'Harita indiriliyor...',
+      duration: 0
+    });
+    await loading.present();
+
+    try {
+      await this.mapCacheService.downloadMapArea(name, {
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest()
+      }, minZoom, maxZoom);
+
+      await loading.dismiss();
+      this.showAlert('Başarılı', 'Harita başarıyla indirildi!');
+    } catch (error) {
+      await loading.dismiss();
+      this.showAlert('Hata', 'Harita indirilemedi: ' + error);
+    }
+  }
+
+  async showCachedMaps() {
+    if (this.cachedMaps.length === 0) {
+      this.showAlert('Bilgi', 'Henüz önbelleğe alınmış harita bulunmuyor.');
+      return;
+    }
+
+    const buttons = this.cachedMaps.map(map => ({
+      text: `${map.name} (${map.sizeInMB.toFixed(1)} MB)`,
+      handler: () => {
+        this.selectCachedMap(map);
+      }
+    }));
+
+    buttons.push({
+      text: 'İptal',
+      handler: () => {}
+    });
+
+    const actionSheet = await this.actionSheetController.create({
+      header: 'Önbelleğe Alınmış Haritalar',
+      buttons: buttons as any,
+      cssClass: 'ios-action-sheet'
+    });
+
+    await actionSheet.present();
+  }
+
+  async selectCachedMap(map: MapCacheMetadata) {
+    this.currentCachedMap = map.name;
+    this.updateMapTiles();
+
+    // Map bounds'ını cached map bounds'ına ayarla
+    if (this.map) {
+      this.map.fitBounds([
+        [map.bounds.south, map.bounds.west],
+        [map.bounds.north, map.bounds.east]
+      ]);
+    }
+
+    this.showAlert('Başarılı', `"${map.name}" haritası yüklendi!`);
+  }
+
+  async clearCache() {
+    const alert = await this.alertController.create({
+      header: 'Cache Temizle',
+      message: 'Tüm önbelleğe alınmış haritalar silinecek. Bu işlem geri alınamaz.',
+      buttons: [
+        {
+          text: 'İptal',
+          role: 'cancel'
+        },
+        {
+          text: 'Temizle',
+          role: 'destructive',
+          handler: async () => {
+            try {
+              await this.mapCacheService.clearAllCache();
+              this.currentCachedMap = null;
+              this.updateMapTiles();
+              this.showAlert('Başarılı', 'Tüm cache temizlendi!');
+            } catch (error) {
+              this.showAlert('Hata', 'Cache temizlenemedi: ' + error);
+            }
+          }
+        }
+      ],
+      cssClass: 'ios-alert'
+    });
+
+    await alert.present();
   }
 }

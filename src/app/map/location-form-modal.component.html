@@ -1,0 +1,128 @@
+<ion-header class="ios-modal-header">
+  <ion-toolbar>
+    <ion-title>{{ getTitle() }}</ion-title>
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="dismiss()">
+        <ion-icon name="close" color="medium"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-buttons slot="end">
+      <ion-button
+        fill="clear"
+        [disabled]="!locationForm.valid"
+        (click)="save()"
+        color="primary">
+        <strong>Kaydet</strong>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ios-modal-content">
+  <div class="form-container">
+    <!-- Header Icon -->
+    <div class="form-header">
+      <div class="form-icon" [class]="getIconClass()">
+        <ion-icon [name]="getIconName()"></ion-icon>
+      </div>
+      <h2>{{ getSubtitle() }}</h2>
+      <p>Konum bilgilerini doldurun</p>
+    </div>
+
+    <form [formGroup]="locationForm" class="ios-form">
+      <!-- Title Field -->
+      <div class="form-group">
+        <ion-item class="ios-input" lines="none">
+          <ion-label position="stacked">Başlık *</ion-label>
+          <ion-input
+            formControlName="title"
+            placeholder="Konum adını girin"
+            type="text">
+          </ion-input>
+        </ion-item>
+        <div class="error-message" *ngIf="locationForm.get('title')?.invalid && locationForm.get('title')?.touched">
+          <ion-icon name="alert-circle" color="danger"></ion-icon>
+          <span>Başlık gereklidir</span>
+        </div>
+      </div>
+
+      <!-- Description Field -->
+      <div class="form-group">
+        <ion-item class="ios-input" lines="none">
+          <ion-label position="stacked">Açıklama</ion-label>
+          <ion-textarea
+            formControlName="description"
+            placeholder="Detaylı açıklama girin"
+            rows="3"
+            auto-grow="true">
+          </ion-textarea>
+        </ion-item>
+      </div>
+
+      <!-- City Field -->
+      <div class="form-group">
+        <ion-item class="ios-input" lines="none">
+          <ion-label position="stacked">Şehir *</ion-label>
+          <ion-input
+            formControlName="city"
+            placeholder="Şehir adını girin"
+            type="text">
+          </ion-input>
+        </ion-item>
+        <div class="error-message" *ngIf="locationForm.get('city')?.invalid && locationForm.get('city')?.touched">
+          <ion-icon name="alert-circle" color="danger"></ion-icon>
+          <span>Şehir gereklidir</span>
+        </div>
+      </div>
+
+      <!-- Coordinates Section -->
+      <div class="coordinates-section">
+        <h3>Koordinatlar</h3>
+        <p class="coordinates-help">GPS konumunuz otomatik olarak alındı</p>
+
+        <div class="coordinates-grid">
+          <div class="form-group">
+            <ion-item class="ios-input coordinate-input" lines="none">
+              <ion-label position="stacked">Enlem *</ion-label>
+              <ion-input
+                formControlName="latitude"
+                placeholder="0.000000"
+                type="number"
+                step="any">
+              </ion-input>
+            </ion-item>
+            <div class="error-message" *ngIf="locationForm.get('latitude')?.invalid && locationForm.get('latitude')?.touched">
+              <ion-icon name="alert-circle" color="danger"></ion-icon>
+              <span>Geçerli enlem girin</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <ion-item class="ios-input coordinate-input" lines="none">
+              <ion-label position="stacked">Boylam *</ion-label>
+              <ion-input
+                formControlName="longitude"
+                placeholder="0.000000"
+                type="number"
+                step="any">
+              </ion-input>
+            </ion-item>
+            <div class="error-message" *ngIf="locationForm.get('longitude')?.invalid && locationForm.get('longitude')?.touched">
+              <ion-icon name="alert-circle" color="danger"></ion-icon>
+              <span>Geçerli boylam girin</span>
+            </div>
+          </div>
+        </div>
+
+        <ion-button
+          fill="outline"
+          size="small"
+          class="get-location-btn"
+          (click)="getCurrentLocation()">
+          <ion-icon name="location" slot="start"></ion-icon>
+          Mevcut Konumu Al
+        </ion-button>
+      </div>
+    </form>
+  </div>
+</ion-content>

@@ -1,5 +1,7 @@
 .login-content {
   --background: #f5f5f5;
+  --padding-top: max(var(--safe-area-top), 20px);
+  --padding-bottom: max(var(--safe-area-bottom), 20px);
 }
 
 .login-wrapper {
@@ -100,7 +102,12 @@
         --color: #6c757d;
         --padding-start: 8px;
         --padding-end: 8px;
+        --min-height: 40px;
+        --min-width: 40px;
         margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
         .password-icon {
           font-size: 20px;
@@ -133,6 +140,48 @@
       --color: #6c757d;
       --box-shadow: none;
     }
+  }
+}
+
+.offline-banner {
+  background: rgba(255, 152, 0, 0.9);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+  width: 100%;
+  max-width: 400px;
+
+  ion-icon {
+    font-size: 18px;
+  }
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 0 4px;
+
+  .save-credentials-checkbox {
+    --size: 18px;
+    --checkmark-color: white;
+    --background-checked: #007bff;
+    --border-color-checked: #007bff;
+  }
+
+  .save-credentials-label {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 0;
   }
 }
 
