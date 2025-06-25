@@ -75,20 +75,11 @@ export class LocationService {
   private async showPermissionDeniedAlert() {
     const alert = await this.alertController.create({
       header: 'Konum İzni Gerekli',
-      message: 'Haritada konumunuzu gösterebilmek için konum iznine ihtiyacımız var. Lütfen ayarlardan konum iznini etkinleştirin.',
+      message: 'Haritada konumunuzu gösterebilmek için konum iznine ihtiyacımız var. Lütfen cihaz ayarlarından konum iznini etkinleştirin.',
       buttons: [
         {
           text: 'Tamam',
           role: 'cancel'
-        },
-        {
-          text: 'Ayarları Aç',
-          handler: () => {
-            // Android için ayarları aç
-            if (typeof (window as any).Android !== 'undefined') {
-              (window as any).Android.openAppSettings();
-            }
-          }
         }
       ]
     });
