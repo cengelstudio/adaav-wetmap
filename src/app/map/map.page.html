@@ -2,6 +2,9 @@
   <ion-toolbar>
     <ion-title>Harita</ion-title>
     <ion-buttons slot="end">
+      <ion-button (click)="showUserLocation()" fill="clear">
+        <ion-icon name="location" size="large"></ion-icon>
+      </ion-button>
       <ion-button (click)="addNewLocation()">
         <ion-icon name="add" size="large"></ion-icon>
       </ion-button>

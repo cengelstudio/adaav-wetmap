@@ -5,6 +5,7 @@ import { ApiService, Location } from '../services/api.service';
 import { OfflineService } from '../services/offline.service';
 import { Geolocation } from '@capacitor/geolocation';
 import { MapCacheService, MapCacheMetadata } from '../services/map-cache.service';
+import { LocationService } from '../services/location.service';
 import { LocationFormModalComponent } from './location-form-modal.component';
 
 @Component({
@@ -32,7 +33,8 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
     private loadingController: LoadingController,
     private alertController: AlertController,
     private modalController: ModalController,
-    private actionSheetController: ActionSheetController
+    private actionSheetController: ActionSheetController,
+    private locationService: LocationService
   ) {
     // Global window functions for popup buttons
     (window as any).editLocation = (locationId: string) => {
@@ -92,6 +94,19 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
     });
 
     this.loadLocations();
+
+    // Konum izinlerini kontrol et
+    this.checkLocationPermissions();
+  }
+
+  async checkLocationPermissions() {
+    const hasPermission = await this.locationService.checkLocationPermission();
+    if (hasPermission) {
+      // İzin varsa kullanıcı konumunu göster
+      setTimeout(() => {
+        this.showUserLocation();
+      }, 2000); // Harita yüklendikten sonra
+    }
   }
 
   ngAfterViewInit() {
@@ -276,8 +291,14 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
 
   async showUserLocation() {
     try {
-      const position = await Geolocation.getCurrentPosition();
-      const userLocation: [number, number] = [position.coords.latitude, position.coords.longitude];
+      const location = await this.locationService.getCurrentLocation();
+
+      if (!location) {
+        console.log('Konum alınamadı veya izin reddedildi');
+        return;
+      }
+
+      const userLocation: [number, number] = [location.latitude, location.longitude];
 
       const userIcon = this.getIconForType('user');
       L.marker(userLocation, { icon: userIcon })
@@ -314,6 +335,9 @@ export class MapPage implements OnInit, AfterViewInit, OnDestroy {
           maxWidth: 300,
           className: 'ios-popup-wrapper user-popup'
         });
+
+      // Haritayı kullanıcı konumuna odakla
+      this.map!.setView(userLocation, 15);
     } catch (error) {
       console.log('Konum erişimi reddedildi veya mevcut değil:', error);
     }

@@ -1,6 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ModalController } from '@ionic/angular';
+import { LocationService } from '../services/location.service';
 
 @Component({
   selector: 'app-location-form-modal',
@@ -16,7 +17,8 @@ export class LocationFormModalComponent implements OnInit {
 
   constructor(
     private modalController: ModalController,
-    private formBuilder: FormBuilder
+    private formBuilder: FormBuilder,
+    private locationService: LocationService
   ) {
     this.locationForm = this.formBuilder.group({
       title: ['', Validators.required],
@@ -54,13 +56,14 @@ export class LocationFormModalComponent implements OnInit {
 
   async getCurrentLocation() {
     try {
-      const { Geolocation } = await import('@capacitor/geolocation');
-      const position = await Geolocation.getCurrentPosition();
+      const location = await this.locationService.getCurrentLocation();
 
-      this.locationForm.patchValue({
-        latitude: position.coords.latitude.toFixed(6),
-        longitude: position.coords.longitude.toFixed(6)
-      });
+      if (location) {
+        this.locationForm.patchValue({
+          latitude: location.latitude.toFixed(6),
+          longitude: location.longitude.toFixed(6)
+        });
+      }
     } catch (error) {
       console.error('Konum alınamadı:', error);
     }
